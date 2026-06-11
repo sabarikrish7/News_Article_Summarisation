@@ -1,0 +1,47 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Build artifacts
+build/
+dist/
+*.egg-info/
+
+# IDEs
+.vscode/
+.idea/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Environment variables
+.env
+.env.*
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Model checkpoints and training artifacts
+saved_model/checkpoint-*/
+saved_model/**/optimizer.pt
+saved_model/**/scheduler.pt
+saved_model/**/scaler.pt
+saved_model/**/rng_state.pth
+saved_model/**/trainer_state.json
+
+saved_model/final_t5_finetuned/
+
+# Hugging Face cache (if present)
+.cache/
