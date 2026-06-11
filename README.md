@@ -1,4 +1,4 @@
-```markdown
+
 # News Article Summarization System
 
 An end-to-end NLP pipeline implementing both extractive and abstractive summarization approaches on the CNN/DailyMail dataset. Built incrementally matching standard ML lifecycle workflows, complete with a comparative web dashboard.
@@ -18,6 +18,7 @@ An end-to-end NLP pipeline implementing both extractive and abstractive summariz
 ## 🛠️ Installation & Setup
 
 1. **Initialize Environment(with Python 3.11):**
+
    ```bash
    uv venv --python 3.11
    source .venv/bin/activate
