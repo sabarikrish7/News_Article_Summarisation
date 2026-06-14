@@ -1,61 +1,51 @@
 import torch
-from datasets import load_dataset
 from transformers import (
-    AutoTokenizer,
-    AutoModelForSeq2SeqLM,
     DataCollatorForSeq2Seq,
     Seq2SeqTrainingArguments,
     Seq2SeqTrainer,
 )
+from src.data import load_cnn_dailymail
+from src.models import load_t5_architecture
 
 
-def main():
-    print("1. Loading dataset and slicing for rapid prototyping...")
-    dataset = load_dataset("abisee/cnn_dailymail", "3.0.0")
+def main() -> None:
+    print("1. Loading dataset splits from src...")
+    train_dataset = load_cnn_dailymail("train", sample_size=5000)
+    eval_dataset = load_cnn_dailymail("validation", sample_size=500)
 
-    train_dataset = dataset["train"].select(range(5000))
-    eval_dataset = dataset["validation"].select(range(500))
+    print("2. Initializing T5 Architecture...")
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    tokenizer, model = load_t5_architecture("t5-small", device)
 
-    print("2. Loading T5Tokenizer and Model...")
-    model_name = "t5-small"
-    tokenizer = AutoTokenizer.from_pretrained(model_name)
-    model = AutoModelForSeq2SeqLM.from_pretrained(model_name)
-
-    print("3. Tokenizing datasets...")
+    print("3. Preprocessing datasets...")
 
     def preprocess_function(examples):
         inputs = ["summarize: " + doc for doc in examples["article"]]
-
         model_inputs = tokenizer(inputs, max_length=512, truncation=True)
-
         labels = tokenizer(
             text_target=examples["highlights"], max_length=128, truncation=True
         )
-
         model_inputs["labels"] = labels["input_ids"]
         return model_inputs
 
     tokenized_train = train_dataset.map(preprocess_function, batched=True)
     tokenized_eval = eval_dataset.map(preprocess_function, batched=True)
-
-    print("4. Setting up the Data Collator...")
     data_collator = DataCollatorForSeq2Seq(tokenizer=tokenizer, model=model)
 
-    print("5. Configuring Training Arguments...")
+    print("4. Configuring Trainer...")
     training_args = Seq2SeqTrainingArguments(
         output_dir="./saved_model",
-        eval_strategy="epoch",  # Check validation loss at the end of every epoch
+        eval_strategy="epoch",
         learning_rate=2e-5,
-        per_device_train_batch_size=4,  # Keep batch size small to avoid Out Of Memory (OOM) errors
+        per_device_train_batch_size=4,
         per_device_eval_batch_size=4,
         weight_decay=0.01,
-        save_total_limit=2,  # Prevent hard drive bloat by keeping only the 2 latest checkpoints
-        num_train_epochs=3,  # Pass over the 5,000 examples 3 times
-        predict_with_generate=True,  # Required for abstractive summarization models
-        fp16=torch.cuda.is_available(),  # Accelerate training heavily if NVIDIA GPU is present
+        save_total_limit=2,
+        num_train_epochs=3,
+        predict_with_generate=True,
+        fp16=torch.cuda.is_available(),
     )
 
-    print("6. Initializing Trainer...")
     trainer = Seq2SeqTrainer(
         model=model,
         args=training_args,
@@ -65,11 +55,8 @@ def main():
         data_collator=data_collator,
     )
 
-    print("7. Commencing Fine-Tuning! (This will take some time)...")
+    print("5. Commencing Fine-Tuning...")
     trainer.train()
-
-    print("8. Saving the final model...")
-    # Save both the model weights and the tokenizer so they can be loaded together later
     trainer.save_model("./saved_model/final_t5_finetuned")
     print("\nSUCCESS: Model saved to ./saved_model/final_t5_finetuned")
 
